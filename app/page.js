@@ -7,34 +7,54 @@ export default function Home() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [isUpdating, setIsUpdating] = useState(false);
-  const mantras = ["Mantra1", "Mantra2", "Mantra3"];
+  const [newMantra, setNewMantra] = useState("");
+  const [mantras, setMantras] = useState(["Mantra1", "Mantra2", "Mantra3"]);
 
   const fetchCounts = async () => {
     try {
+      setLoading(true);
+      console.log("Fetching counts from API...");
+
       const response = await fetch("/api/mantras");
+
       if (!response.ok) {
+        const errorText = await response.text();
+        console.error("API error response:", errorText);
         throw new Error(`HTTP error! status: ${response.status}`);
       }
+
       const data = await response.json();
+      console.log("API response data:", data);
 
       // Convert array of objects to counts object
-      const countsObject = data.reduce((acc, item) => {
-        acc[item.name] = item.count;
-        return acc;
-      }, {});
+      const countsObject = {};
 
-      // Initialize counts for mantras that don't have records yet
+      // First set all mantras to 0 count
       mantras.forEach((mantra) => {
-        if (!(mantra in countsObject)) {
-          countsObject[mantra] = 0;
-        }
+        countsObject[mantra] = 0;
       });
 
+      // Then update with actual counts from API
+      if (Array.isArray(data)) {
+        data.forEach((item) => {
+          // If this is a mantra we're tracking, update its count
+          if (mantras.includes(item.name)) {
+            countsObject[item.name] = item.count;
+          }
+          // If it's a new mantra we don't have in our list, add it
+          else if (!mantras.includes(item.name)) {
+            setMantras((prev) => [...prev, item.name]);
+            countsObject[item.name] = item.count;
+          }
+        });
+      }
+
+      console.log("Final counts object:", countsObject);
       setCounts(countsObject);
       setError(null);
     } catch (err) {
-      setError("Failed to fetch counts");
       console.error("Error fetching counts:", err);
+      setError("Failed to fetch counts: " + err.message);
     } finally {
       setLoading(false);
     }
@@ -46,6 +66,7 @@ export default function Home() {
     try {
       setIsUpdating(true);
       setError(null);
+      console.log(`Incrementing count for ${mantraName}...`);
 
       const response = await fetch("/api/mantras", {
         method: "POST",
@@ -56,23 +77,25 @@ export default function Home() {
       });
 
       if (!response.ok) {
+        const errorText = await response.text();
+        console.error("API error response:", errorText);
         throw new Error(`HTTP error! status: ${response.status}`);
       }
 
       const result = await response.json();
       console.log("Increment result:", result);
 
-      // Update local state optimistically
+      // Optimistically update the local state
       setCounts((prev) => ({
         ...prev,
         [mantraName]: (prev[mantraName] || 0) + 1,
       }));
 
-      // Fetch the latest counts to ensure consistency
+      // Then fetch the latest state to ensure everything is up-to-date
       await fetchCounts();
     } catch (err) {
-      setError("Failed to increment count");
       console.error("Error incrementing count:", err);
+      setError("Failed to increment count: " + err.message);
       // Revert optimistic update on error
       await fetchCounts();
     } finally {
@@ -80,51 +103,124 @@ export default function Home() {
     }
   };
 
+  const addNewMantra = () => {
+    if (!newMantra.trim()) return;
+
+    if (!mantras.includes(newMantra)) {
+      setMantras((prev) => [...prev, newMantra]);
+      setCounts((prev) => ({
+        ...prev,
+        [newMantra]: 0,
+      }));
+      setNewMantra("");
+    }
+  };
+
   useEffect(() => {
     fetchCounts();
-    const interval = setInterval(fetchCounts, 5000);
+    const interval = setInterval(fetchCounts, 30000); // Refresh every 30 seconds
     return () => clearInterval(interval);
   }, []);
 
   return (
-    <main className="min-h-screen p-8">
-      <div className="max-w-2xl mx-auto">
-        <h1 className="text-3xl font-bold mb-8">Mantra Tracker</h1>
-        <div className="bg-white rounded-lg shadow p-6">
-          <h2 className="text-xl font-semibold mb-4">
-            Today's Counts ({format(new Date(), "PP")})
+    <main className="min-h-screen bg-[#161616] text-white">
+      {/* IBM Carbon Header */}
+      <header className="bg-[#000000] text-white py-4">
+        <div className="max-w-6xl mx-auto px-4">
+          <h1 className="text-2xl font-medium">Mantra Tracker</h1>
+        </div>
+      </header>
+
+      <div className="max-w-6xl mx-auto p-8">
+        <div className="mb-8 flex justify-between items-center">
+          <h2 className="text-2xl font-medium">
+            Today's Counts ({format(new Date(), "MMMM d, yyyy")})
           </h2>
+          <button
+            onClick={fetchCounts}
+            className="bg-[#393939] text-white px-4 py-2 hover:bg-[#4d4d4d] transition-colors"
+            disabled={loading}
+          >
+            {loading ? "Refreshing..." : "Refresh"}
+          </button>
+        </div>
 
-          {error && (
-            <div className="bg-red-100 text-red-700 p-3 rounded mb-4">
-              {error}
+        {/* Error message */}
+        {error && (
+          <div className="bg-[#da1e28] bg-opacity-10 border-l-4 border-[#da1e28] text-[#fa4d56] p-4 mb-6">
+            <p className="font-medium">Error</p>
+            <p>{error}</p>
+          </div>
+        )}
+
+        {/* Add new mantra form */}
+        <div className="bg-[#262626] border border-[#393939] p-5 mb-6">
+          <h3 className="text-lg font-medium mb-4">Add New Mantra</h3>
+          <div className="flex gap-3">
+            <div className="flex-grow">
+              <input
+                type="text"
+                value={newMantra}
+                onChange={(e) => setNewMantra(e.target.value)}
+                placeholder="Enter a new mantra"
+                className="border border-[#6f6f6f] bg-[#393939] px-4 py-2 w-full focus:outline-none focus:border-[#0f62fe]"
+              />
             </div>
-          )}
+            <button
+              onClick={addNewMantra}
+              className="bg-[#0f62fe] text-white px-4 py-2 hover:bg-[#0353e9] transition-colors"
+              disabled={!newMantra.trim()}
+            >
+              Add
+            </button>
+          </div>
+        </div>
 
-          {loading ? (
-            <div className="text-gray-500">Loading...</div>
+        {/* Mantra list */}
+        <div className="bg-[#262626] border border-[#393939] p-5">
+          {loading && mantras.length === 0 ? (
+            <div className="py-8 text-center text-[#c6c6c6]">
+              <div className="inline-block w-6 h-6 border-2 border-[#6f6f6f] border-t-[#0f62fe] rounded-full animate-spin mr-2"></div>
+              Loading mantras...
+            </div>
           ) : (
-            <div className="space-y-4">
-              {mantras.map((mantra) => (
-                <div
-                  key={mantra}
-                  className="flex items-center justify-between border-b pb-4"
-                >
+            mantras.map((mantra) => (
+              <div
+                key={mantra}
+                className="py-5 border-b border-[#525252] last:border-b-0"
+              >
+                <div className="flex items-center justify-between">
                   <div>
-                    <h3 className="font-medium">{mantra}</h3>
-                    <p className="text-gray-600">
-                      Count: {counts[mantra] || 0}
-                    </p>
+                    <h3 className="font-medium text-xl">{mantra}</h3>
+                    <div className="mt-2 flex items-center">
+                      <span className="text-[#c6c6c6] mr-2">Count:</span>
+                      <span className="bg-[#393939] px-3 py-1 font-medium">
+                        {counts[mantra] || 0}
+                      </span>
+                    </div>
                   </div>
                   <button
                     onClick={() => incrementCount(mantra)}
-                    className="bg-blue-500 text-white px-4 py-2 rounded hover:bg-blue-600 transition-colors disabled:bg-blue-300"
+                    className="bg-[#0f62fe] text-white px-4 py-2 hover:bg-[#0353e9] transition-colors"
                     disabled={isUpdating}
                   >
-                    {isUpdating ? "Updating..." : "Increment"}
+                    {isUpdating ? (
+                      <>
+                        <span className="inline-block w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin mr-2"></span>
+                        Updating...
+                      </>
+                    ) : (
+                      "Increment"
+                    )}
                   </button>
                 </div>
-              ))}
+              </div>
+            ))
+          )}
+
+          {!loading && mantras.length === 0 && (
+            <div className="py-8 text-center text-[#c6c6c6]">
+              No mantras added yet. Add your first mantra above.
             </div>
           )}
         </div>

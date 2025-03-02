@@ -1,21 +1,76 @@
+/* app/globals.css */
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
 
 :root {
-  --background: #ffffff;
-  --foreground: #171717;
+    --background: #ffffff;
+    --foreground: #161616;
+    --primary: #0f62fe;
+    --secondary: #393939;
+    --ui-background: #f4f4f4;
+    --ui-01: #ffffff;
+    --ui-02: #f4f4f4;
+    --ui-03: #e0e0e0;
+    --ui-04: #8d8d8d;
+    --ui-05: #161616;
+    --text-01: #161616;
+    --text-02: #525252;
+    --text-03: #a8a8a8;
+    --interactive-01: #0f62fe;
+    --interactive-02: #393939;
+    --interactive-03: #0f62fe;
+    --interactive-04: #0f62fe;
+    --danger: #da1e28;
 }
 
 @media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
-  }
+    :root {
+        --background: #161616;
+        --foreground: #f4f4f4;
+        --primary: #0f62fe;
+        --secondary: #6f6f6f;
+        --ui-background: #262626;
+        --ui-01: #393939;
+        --ui-02: #525252;
+        --ui-03: #6f6f6f;
+        --ui-04: #8d8d8d;
+        --ui-05: #f4f4f4;
+        --text-01: #f4f4f4;
+        --text-02: #c6c6c6;
+        --text-03: #6f6f6f;
+        --interactive-01: #0f62fe;
+        --interactive-02: #6f6f6f;
+        --interactive-03: #0f62fe;
+        --interactive-04: #0f62fe;
+        --danger: #fa4d56;
+    }
 }
 
 body {
-  color: var(--foreground);
-  background: var(--background);
-  font-family: Arial, Helvetica, sans-serif;
+    color: var(--text-01);
+    background: var(--background);
+    font-family: "IBM Plex Sans", Arial, sans-serif;
+}
+
+@layer components {
+    .carbon-button-primary {
+        @apply bg-[var(--interactive-01)] text-white px-4 py-2 rounded-none font-medium hover:bg-blue-800 transition-colors focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 disabled:bg-gray-400;
+    }
+
+    .carbon-button-secondary {
+        @apply bg-[var(--interactive-02)] text-white px-4 py-2 rounded-none font-medium hover:bg-gray-700 transition-colors focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-gray-500 disabled:bg-gray-400;
+    }
+
+    .carbon-input {
+        @apply border border-[var(--ui-03)] bg-[var(--ui-01)] px-4 py-2 focus:outline-none focus:border-[var(--interactive-01)] w-full;
+    }
+
+    .carbon-label {
+        @apply block text-[var(--text-02)] text-sm font-medium mb-1;
+    }
+
+    .carbon-card {
+        @apply bg-[var(--ui-01)] border border-[var(--ui-03)] p-5;
+    }
 }
